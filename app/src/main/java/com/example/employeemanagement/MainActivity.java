@@ -1,38 +1,40 @@
 package com.example.employeemanagement;
 
+import android.Manifest;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
-import android.provider.Settings;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+import android.util.Log;
+import com.google.firebase.messaging.FirebaseMessaging;
 
-import java.util.ArrayList;
-import java.util.List;
+
 
 public class MainActivity extends AppCompatActivity {
 
-    private RecyclerView recyclerView;
 
-    private PermissionAdapter permissionAdapter;
+    private static final String CHANNEL_ID = "duty_notification_channel";
 
-    private SharedPreferences sharedPreferences;
+    private TextView fcmTokenTextView;
 
-    private static final int PERMISSION_REQUEST_CODE = 100;
+    private Button permissionManagerButton;
+    private Button clockIn;
 
-    // Position of the card whose permission is being requested
-    private int currentPosition = -1;
+    private Button clockOut;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,6 +44,66 @@ public class MainActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
 
         setContentView(R.layout.activity_main);
+
+        createNotificationChannel();
+
+        fcmTokenTextView = findViewById(R.id.tv_fcm_token);
+
+        FirebaseMessaging.getInstance().getToken()
+                .addOnCompleteListener(task -> {
+
+                    if (!task.isSuccessful()) {
+
+                        Log.e(
+                                "FCM_TOKEN",
+                                "Fetching FCM token failed",
+                                task.getException()
+                        );
+
+                        fcmTokenTextView.setText(
+                                "Failed to generate FCM token"
+                        );
+
+                        return;
+                    }
+
+                    String token = task.getResult();
+
+                    Log.d("FCM_TOKEN", token);
+
+                    fcmTokenTextView.setText(token);
+                });
+
+
+
+        permissionManagerButton = findViewById(R.id.btn_permission_manager);
+
+
+        permissionManagerButton.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, PermissionManagementActivity.class);
+
+            startActivity(intent);
+
+        });
+        clockOut = findViewById(R.id.btn_clockOut);
+
+        clockIn = findViewById(R.id.btn_clockIn);
+
+        clockIn.setOnClickListener(v -> {
+
+            clockIn.setVisibility(View.GONE);
+            clockOut.setVisibility(View.VISIBLE);
+            showClockInNotification();
+        });
+
+        clockOut.setOnClickListener(v -> {
+
+            clockOut.setVisibility(View.GONE);
+            clockIn.setVisibility(View.VISIBLE);
+
+            showClockOutNotification();
+        });
+
 
         ViewCompat.setOnApplyWindowInsetsListener(
                 findViewById(R.id.main),
@@ -63,196 +125,92 @@ public class MainActivity extends AppCompatActivity {
                 }
         );
 
-        // RecyclerView
-        recyclerView =
-                findViewById(R.id.rv_permission);
-
-        // SharedPreferences
-        sharedPreferences =
-                getSharedPreferences(
-                        "PermissionPrefs",
-                        MODE_PRIVATE
-                );
-
-        // Permission list
-        List<String> permissionList =
-                new ArrayList<>();
-
-        permissionList.add("Camera");
-        permissionList.add("Location");
-        permissionList.add("Notification");
-        permissionList.add("Microphone");
-        permissionList.add("Contacts");
-
-        // RecyclerView LayoutManager
-        recyclerView.setLayoutManager(
-                new LinearLayoutManager(this)
-        );
-
-        // Adapter
-        permissionAdapter =
-                new PermissionAdapter(
-                        permissionList,
-                        this
-                );
-
-        // Set Adapter
-        recyclerView.setAdapter(
-                permissionAdapter
-        );
     }
 
-    /**
-     * This method is called from the Adapter
-     * when Request Access or Denied is clicked.
-     */
-    public void requestPermission(
-            String androidPermission,
-            int position
-    ) {
+    private void createNotificationChannel() {
 
-        // Save the position of the clicked card
-        currentPosition = position;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 
-        // Check whether permission is already granted
-        boolean isGranted =
-                ContextCompat.checkSelfPermission(
+            CharSequence name = "Duty Notifications";
+
+            String description =
+                    "Notifications related to employee duty status";
+
+            int importance =
+                    NotificationManager.IMPORTANCE_HIGH;
+
+            NotificationChannel channel =
+                    new NotificationChannel(
+                            CHANNEL_ID,
+                            name,
+                            importance
+                    );
+
+            channel.setDescription(description);
+
+            NotificationManager notificationManager =
+                    getSystemService(NotificationManager.class);
+
+            notificationManager.createNotificationChannel(channel);
+        }
+    }
+
+    private void showClockInNotification() {
+
+        NotificationCompat.Builder builder =
+                new NotificationCompat.Builder(
                         this,
-                        androidPermission
-                ) == PackageManager.PERMISSION_GRANTED;
+                        CHANNEL_ID
+                )
+                        .setSmallIcon(R.drawable.ic_notification)
+                        .setContentTitle("Duty Clocked In")
+                        .setContentText("Your duty has been clocked in successfully.")
+                        .setPriority(NotificationCompat.PRIORITY_HIGH)
+                        .setAutoCancel(true);
 
-        if (isGranted) {
+        NotificationManagerCompat notificationManager =
+                NotificationManagerCompat.from(this);
 
-            // Permission already granted
-            refreshPermissionUI();
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+        ) != PackageManager.PERMISSION_GRANTED) {
 
             return;
         }
 
-        // Check if this permission was requested before
-        boolean alreadyRequested =
-                sharedPreferences.getBoolean(
-                        androidPermission,
-                        false
-                );
-
-        if (!alreadyRequested) {
-
-            /*
-             * FIRST REQUEST
-             *
-             * Show Android permission dialog.
-             */
-
-            sharedPreferences
-                    .edit()
-                    .putBoolean(
-                            androidPermission,
-                            true
-                    )
-                    .apply();
-
-            ActivityCompat.requestPermissions(
-                    this,
-                    new String[]{
-                            androidPermission
-                    },
-                    PERMISSION_REQUEST_CODE
-            );
-
-        } else {
-
-            /*
-             * Permission was already requested.
-             *
-             * Open Android App Settings.
-             */
-
-            openAppSettings();
-        }
-    }
-
-    /**
-     * Called by Android after
-     * the permission dialog.
-     */
-    @Override
-    public void onRequestPermissionsResult(
-            int requestCode,
-            @NonNull String[] permissions,
-            @NonNull int[] grantResults
-    ) {
-
-        super.onRequestPermissionsResult(
-                requestCode,
-                permissions,
-                grantResults
+        notificationManager.notify(
+                1001,
+                builder.build()
         );
-
-        if (requestCode ==
-                PERMISSION_REQUEST_CODE) {
-
-            refreshPermissionUI();
-        }
     }
+    private void showClockOutNotification() {
 
-    /**
-     * Refresh only the card whose permission
-     * was requested.
-     */
-    private void refreshPermissionUI() {
+        NotificationCompat.Builder builder =
+                new NotificationCompat.Builder(
+                        this,
+                        CHANNEL_ID
+                )
+                        .setSmallIcon(R.drawable.ic_notification)
+                        .setContentTitle("Duty Clocked Out")
+                        .setContentText("Your duty has been clocked out successfully.")
+                        .setPriority(NotificationCompat.PRIORITY_HIGH)
+                        .setAutoCancel(true);
 
-        if (permissionAdapter != null &&
-                currentPosition != -1) {
+        NotificationManagerCompat notificationManager =
+                NotificationManagerCompat.from(this);
 
-            permissionAdapter.notifyItemChanged(
-                    currentPosition
-            );
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+        ) != PackageManager.PERMISSION_GRANTED) {
+
+            return;
         }
-    }
 
-    /**
-     * Open the application's settings page.
-     */
-    private void openAppSettings() {
-
-        Intent intent =
-                new Intent(
-                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-                );
-
-        Uri uri =
-                Uri.fromParts(
-                        "package",
-                        getPackageName(),
-                        null
-                );
-
-        intent.setData(uri);
-
-        startActivity(intent);
-    }
-
-    /**
-     * Called when the Activity becomes visible again.
-     *
-     * This is important when the user comes back
-     * from Android Settings.
-     */
-    @Override
-    protected void onResume() {
-
-        super.onResume();
-
-        if (permissionAdapter != null) {
-
-            /*
-             * Re-check all permissions.
-             *
-             * This also handles "Allow once"
-             * permissions being revoked by Android.
-             */
-            permissionAdapter.notifyDataSetChanged();
-        }
+        notificationManager.notify(
+                1001,
+                builder.build()
+        );
     }
 }

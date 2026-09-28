@@ -24,9 +24,9 @@ public class PermissionAdapter
 
     private final Map<String, String> permissionMap = new HashMap<>();
 
-    private MainActivity activity;
+    private PermissionManagementActivity activity;
 
-    public PermissionAdapter(List<String> permissionList, MainActivity instance) {
+    public PermissionAdapter(List<String> permissionList, PermissionManagementActivity instance) {
 
         this.permissionList = permissionList;
 
