@@ -11,6 +11,7 @@
     app:layout_constraintStart_toStartOf="parent"
     android:backgroundTint="@color/jeebly_red"
     app:layout_constraintEnd_toEndOf="parent"
+    app:cardCornerRadius="40dp"
     >
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -38,6 +39,7 @@
             android:backgroundTint="@color/jeebly_blue"
             android:text="Denied"
             android:fontFamily="@font/nexaregular"
+            android:textColor="@color/white"
             android:textStyle="bold"
             app:layout_constraintLeft_toLeftOf="parent"
             android:layout_marginStart="30dp"
@@ -51,6 +53,7 @@
             android:backgroundTint="@color/jeebly_blue"
             android:visibility="gone"
             android:text="Granted"
+            android:textColor="@color/white"
             android:textStyle="bold"
             android:fontFamily="@font/nexaregular"
             app:layout_constraintLeft_toLeftOf="parent"
@@ -65,6 +68,7 @@
             android:layout_height="wrap_content"
             android:fontFamily="@font/nexaregular"
             android:text="Request Access"
+            android:textColor="@color/white"
             android:textStyle="bold"
             android:backgroundTint="@color/jeebly_blue"
             app:layout_constraintEnd_toEndOf="parent"

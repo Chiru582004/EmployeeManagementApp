@@ -1,13 +1,9 @@
-package com.example.employeemanagement;
+package com.example.employeemanagement.Activities;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -17,13 +13,15 @@ import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import android.util.Log;
+
+import com.example.employeemanagement.NotificationHelper;
+import com.example.employeemanagement.R;
+import com.example.employeemanagement.receivers.ChargingReceiver;
+import com.example.employeemanagement.receivers.GPSReceiver;
 import com.google.firebase.messaging.FirebaseMessaging;
 
 
@@ -32,8 +30,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     private static final String CHANNEL_ID = "duty_notification_channel";
-
-    private TextView fcmTokenTextView;
+    
     private TextView fcmTokenLabel;
 
     private Button permissionManagerButton;
@@ -66,7 +63,6 @@ public class MainActivity extends AppCompatActivity {
             registerReceiver(gpsReceiver, gpsFilter);
         }
 
-        fcmTokenTextView = findViewById(R.id.tv_fcm_token);
         fcmTokenLabel = findViewById(R.id.tv_fcm_label);
 
         FirebaseMessaging.getInstance().getToken()

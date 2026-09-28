@@ -1,4 +1,4 @@
-package com.example.employeemanagement;
+package com.example.employeemanagement.Activities;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -18,6 +18,9 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.employeemanagement.PermissionAdapter;
+import com.example.employeemanagement.R;
 
 import java.util.ArrayList;
 import java.util.List;

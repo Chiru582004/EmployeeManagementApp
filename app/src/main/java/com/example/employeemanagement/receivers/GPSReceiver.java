@@ -1,10 +1,12 @@
-package com.example.employeemanagement;
+package com.example.employeemanagement.receivers;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.location.LocationManager;
 import android.util.Log;
+
+import com.example.employeemanagement.NotificationHelper;
 
 public class GPSReceiver extends BroadcastReceiver {
 
