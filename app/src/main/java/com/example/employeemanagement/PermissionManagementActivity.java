@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.widget.Button;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -31,6 +32,8 @@ public class PermissionManagementActivity extends AppCompatActivity {
 
     private SharedPreferences sharedPreferences;
 
+    private Button granted;
+
     private static final int PERMISSION_REQUEST_CODE = 100;
 
     private int currentPosition = -1;
@@ -45,7 +48,6 @@ public class PermissionManagementActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
-
 
 
 

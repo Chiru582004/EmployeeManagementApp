@@ -1,10 +1,14 @@
 package com.example.employeemanagement;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
@@ -30,12 +34,17 @@ public class MainActivity extends AppCompatActivity {
     private static final String CHANNEL_ID = "duty_notification_channel";
 
     private TextView fcmTokenTextView;
+    private TextView fcmTokenLabel;
 
     private Button permissionManagerButton;
+
+    private ChargingReceiver chargingReceiver;
     private Button clockIn;
 
     private Button clockOut;
 
+    private GPSReceiver gpsReceiver;
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -45,9 +54,20 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
 
-        createNotificationChannel();
+        chargingReceiver = new ChargingReceiver();
+
+        IntentFilter gpsFilter = new IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION);
+        gpsFilter.addAction(Intent.ACTION_PROVIDER_CHANGED);
+        gpsReceiver = new GPSReceiver();
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(gpsReceiver, gpsFilter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(gpsReceiver, gpsFilter);
+        }
 
         fcmTokenTextView = findViewById(R.id.tv_fcm_token);
+        fcmTokenLabel = findViewById(R.id.tv_fcm_label);
 
         FirebaseMessaging.getInstance().getToken()
                 .addOnCompleteListener(task -> {
@@ -60,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
                                 task.getException()
                         );
 
-                        fcmTokenTextView.setText(
+                        fcmTokenLabel.setText(
                                 "Failed to generate FCM token"
                         );
 
@@ -71,7 +91,7 @@ public class MainActivity extends AppCompatActivity {
 
                     Log.d("FCM_TOKEN", token);
 
-                    fcmTokenTextView.setText(token);
+                    fcmTokenLabel.setText("FCM Token Generated");
                 });
 
 
@@ -93,7 +113,7 @@ public class MainActivity extends AppCompatActivity {
 
             clockIn.setVisibility(View.GONE);
             clockOut.setVisibility(View.VISIBLE);
-            showClockInNotification();
+            NotificationHelper.showNotification(this, 1001, "Duty Clocked In", "Your duty has been clocked in successfully.");
         });
 
         clockOut.setOnClickListener(v -> {
@@ -101,7 +121,7 @@ public class MainActivity extends AppCompatActivity {
             clockOut.setVisibility(View.GONE);
             clockIn.setVisibility(View.VISIBLE);
 
-            showClockOutNotification();
+            NotificationHelper.showNotification(this, 1001, "Duty Clocked Out", "Your duty has been clocked out successfully.");
         });
 
 
@@ -127,90 +147,30 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void createNotificationChannel() {
+    @Override
+    protected void onStart() {
+        super.onStart();
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        IntentFilter filter = new IntentFilter();
 
-            CharSequence name = "Duty Notifications";
+        filter.addAction(Intent.ACTION_POWER_CONNECTED);
+        filter.addAction(Intent.ACTION_POWER_DISCONNECTED);
 
-            String description =
-                    "Notifications related to employee duty status";
-
-            int importance =
-                    NotificationManager.IMPORTANCE_HIGH;
-
-            NotificationChannel channel =
-                    new NotificationChannel(
-                            CHANNEL_ID,
-                            name,
-                            importance
-                    );
-
-            channel.setDescription(description);
-
-            NotificationManager notificationManager =
-                    getSystemService(NotificationManager.class);
-
-            notificationManager.createNotificationChannel(channel);
-        }
+        registerReceiver(chargingReceiver,filter);
     }
 
-    private void showClockInNotification() {
+    @Override
+    protected void onStop() {
+        super.onStop();
 
-        NotificationCompat.Builder builder =
-                new NotificationCompat.Builder(
-                        this,
-                        CHANNEL_ID
-                )
-                        .setSmallIcon(R.drawable.ic_notification)
-                        .setContentTitle("Duty Clocked In")
-                        .setContentText("Your duty has been clocked in successfully.")
-                        .setPriority(NotificationCompat.PRIORITY_HIGH)
-                        .setAutoCancel(true);
-
-        NotificationManagerCompat notificationManager =
-                NotificationManagerCompat.from(this);
-
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.POST_NOTIFICATIONS
-        ) != PackageManager.PERMISSION_GRANTED) {
-
-            return;
-        }
-
-        notificationManager.notify(
-                1001,
-                builder.build()
-        );
+        unregisterReceiver(chargingReceiver);
     }
-    private void showClockOutNotification() {
 
-        NotificationCompat.Builder builder =
-                new NotificationCompat.Builder(
-                        this,
-                        CHANNEL_ID
-                )
-                        .setSmallIcon(R.drawable.ic_notification)
-                        .setContentTitle("Duty Clocked Out")
-                        .setContentText("Your duty has been clocked out successfully.")
-                        .setPriority(NotificationCompat.PRIORITY_HIGH)
-                        .setAutoCancel(true);
-
-        NotificationManagerCompat notificationManager =
-                NotificationManagerCompat.from(this);
-
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.POST_NOTIFICATIONS
-        ) != PackageManager.PERMISSION_GRANTED) {
-
-            return;
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (gpsReceiver != null) {
+            unregisterReceiver(gpsReceiver);
         }
-
-        notificationManager.notify(
-                1001,
-                builder.build()
-        );
     }
 }

@@ -8,6 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
@@ -123,10 +124,10 @@ public class PermissionAdapter
         });
 
         // Granted button
+
         holder.btnGranted.setOnClickListener(v -> {
 
-            // Nothing needs to happen.
-            // Permission is already granted.
+            Toast.makeText(holder.itemView.getContext(), "Permission Already Granted", Toast.LENGTH_SHORT).show();
 
         });
     }
