@@ -9,6 +9,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
@@ -39,6 +40,8 @@ public class MainActivity extends AppCompatActivity {
     private Button clockIn;
 
     private Button clockOut;
+
+    private ImageButton profileImageButton;
 
     private GPSReceiver gpsReceiver;
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
@@ -89,6 +92,15 @@ public class MainActivity extends AppCompatActivity {
 
                     fcmTokenLabel.setText("FCM Token Generated");
                 });
+
+
+        profileImageButton = findViewById(R.id.btn_profileImage);
+
+        profileImageButton.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, CameraActivity.class);
+
+            startActivity(intent);
+        });
 
 
 
