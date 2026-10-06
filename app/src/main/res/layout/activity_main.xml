@@ -46,17 +46,17 @@
             android:src="@drawable/profile_round_1346_svgrepo_com"
             />
 
-<!--        <ImageButton-->
-<!--            android:id="@+id/ibtn_camera"-->
-<!--            android:layout_width="40dp"-->
-<!--            android:layout_height="40dp"-->
-<!--            android:scaleType="centerInside"-->
-<!--            android:layout_margin="10dp"-->
-<!--            android:background="@drawable/rating_circle"-->
-<!--            app:layout_constraintTop_toTopOf="parent"-->
-<!--            app:layout_constraintStart_toStartOf="parent"-->
-<!--            android:src="@drawable/camera_svgrepo_com"-->
-<!--            />-->
+        <ImageButton
+            android:id="@+id/ibtn_location"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:scaleType="centerInside"
+            android:layout_margin="10dp"
+            android:background="@drawable/rating_circle"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            android:src="@drawable/location_pin_svgrepo_com"
+            />
 
         <!-- FCM Token Label -->
         <TextView

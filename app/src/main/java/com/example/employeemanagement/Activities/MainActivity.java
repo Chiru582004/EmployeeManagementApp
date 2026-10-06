@@ -42,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
     private Button clockOut;
 
     private ImageButton profileImageButton;
+    private ImageButton locationImageButton;
 
     private GPSReceiver gpsReceiver;
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
@@ -93,6 +94,15 @@ public class MainActivity extends AppCompatActivity {
                     fcmTokenLabel.setText("FCM Token Generated");
                 });
 
+
+
+        locationImageButton = findViewById(R.id.ibtn_location);
+
+        locationImageButton.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, LocationServiceActivity.class);
+
+            startActivity(intent);
+        });
 
         profileImageButton = findViewById(R.id.btn_profileImage);
 

@@ -4,4 +4,15 @@
     <string name="notification_testing">Notification Testing</string>
     <string name="clock_in">Clock In</string>
     <string name="clock_out">Clock Out</string>
+    <string name="location">  LOCATION  </string>
+    <string name="stop_tracking">STOP TRACKING</string>
+    <string name="start_tracking">START TRACKING</string>
+    <string name="average_speed_0_km_h">Average Speed: 0 km/h</string>
+    <string name="updates_0">Updates: 0</string>
+    <string name="distance_0_m">Distance: 0 m</string>
+    <string name="bearing">Bearing</string>
+    <string name="speed">Speed</string>
+    <string name="accuracy">Accuracy</string>
+    <string name="longitude">Longitude</string>
+    <string name="latitude">Latitude</string>
 </resources>
