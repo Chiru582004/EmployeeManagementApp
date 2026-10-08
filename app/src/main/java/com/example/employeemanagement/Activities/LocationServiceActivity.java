@@ -63,17 +63,25 @@ public class LocationServiceActivity extends AppCompatActivity {
         setContentView(R.layout.activity_location_service);
 
         latitudeText = findViewById(R.id.tv_latitude);
+
         longitudeText = findViewById(R.id.tv_longitude);
+
         accuracyText = findViewById(R.id.tv_accuracy);
+
         speedText = findViewById(R.id.tv_speed);
+
         bearingText = findViewById(R.id.tv_bearing);
+
         updateIntervalSpinner = findViewById(R.id.spinner_updateInterval);
 
         distanceText = findViewById(R.id.tv_distance);
+
         updatesText = findViewById(R.id.tv_updates);
+
         averageSpeedText = findViewById(R.id.tv_averageSpeed);
 
         startTrackingButton = findViewById(R.id.btn_startTracking);
+
         stopTrackingButton = findViewById(R.id.btn_stopTracking);
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
@@ -126,6 +134,7 @@ public class LocationServiceActivity extends AppCompatActivity {
                                 selectedInterval = 30000;
                                 break;
                         }
+                        createLocationRequest();
                     }
 
                     @Override
@@ -141,6 +150,7 @@ public class LocationServiceActivity extends AppCompatActivity {
             return insets;
         });
 
+        createLocationRequest();
         createLocationCallback();
 
         startTrackingButton.setOnClickListener(v -> {
@@ -281,8 +291,6 @@ public class LocationServiceActivity extends AppCompatActivity {
         distanceText.setText("Distance: 0 m");
         updatesText.setText("Updates: 0");
         averageSpeedText.setText("Average Speed: 0 km/h");
-
-        createLocationRequest();
 
         if (ActivityCompat.checkSelfPermission(
                 this,
