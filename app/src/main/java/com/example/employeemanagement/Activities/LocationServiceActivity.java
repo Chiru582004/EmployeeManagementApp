@@ -1,6 +1,7 @@
 package com.example.employeemanagement.Activities;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
@@ -24,6 +25,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.example.employeemanagement.R;
+import com.example.employeemanagement.Services.LocationForegroundService;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
@@ -327,6 +329,23 @@ public class LocationServiceActivity extends AppCompatActivity {
         stopTrackingButton.setEnabled(true);
         stopTrackingButton.setBackgroundColor(red);
 
+        Intent serviceIntent =
+                new Intent(this, LocationForegroundService.class);
+
+        serviceIntent.setAction(
+                LocationForegroundService.ACTION_START
+        );
+
+        serviceIntent.putExtra(
+                LocationForegroundService.EXTRA_INTERVAL,
+                selectedInterval
+        );
+
+        ContextCompat.startForegroundService(
+                this,
+                serviceIntent
+        );
+
         Toast.makeText(
                 this,
                 "Tracking started",
@@ -351,6 +370,15 @@ public class LocationServiceActivity extends AppCompatActivity {
         startTrackingButton.setBackgroundColor(red);
         stopTrackingButton.setEnabled(false);
         stopTrackingButton.setBackgroundColor(light_blue);
+
+        Intent serviceIntent =
+                new Intent(this, LocationForegroundService.class);
+
+        serviceIntent.setAction(
+                LocationForegroundService.ACTION_STOP
+        );
+
+        startService(serviceIntent);
 
         Toast.makeText(
                 this,

@@ -62,6 +62,23 @@ public class NotificationHelper {
     }
 
 
+    public static android.app.Notification buildForegroundNotification(
+            Context context,
+            String notificationTitle,
+            String notificationBody
+    ) {
+        createNotificationChannel(context);
+
+        return new NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setContentTitle(notificationTitle)
+                .setContentText(notificationBody)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setOngoing(true)
+                .build();
+    }
+
+
     private static void createNotificationChannel(Context context) {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
