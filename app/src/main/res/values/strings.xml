@@ -2,6 +2,7 @@
     <string name="app_name">EmployeeManagement</string>
     <string name="permission_manager">  Permission Manager  </string>
     <string name="notification_testing">Notification Testing</string>
+    <string name="employee_management">Employee Management</string>
     <string name="clock_in">Clock In</string>
     <string name="clock_out">Clock Out</string>
     <string name="location">  LOCATION  </string>

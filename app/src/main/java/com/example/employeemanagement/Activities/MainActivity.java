@@ -30,6 +30,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.messaging.FirebaseMessaging;
 
@@ -55,6 +56,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private TextView latLongLabel;
     private GPSReceiver gpsReceiver;
     private GoogleMap mMap;
+    private Marker mapMarker;
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -142,15 +144,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         clockIn.setOnClickListener(v -> {
 
-            clockIn.setVisibility(View.GONE);
-            clockOut.setVisibility(View.VISIBLE);
+            clockIn.setEnabled(false);
+            clockOut.setEnabled(true);
             NotificationHelper.showNotification(this, 1001, "Duty Clocked In", "Your duty has been clocked in successfully.");
         });
 
         clockOut.setOnClickListener(v -> {
 
-            clockOut.setVisibility(View.GONE);
-            clockIn.setVisibility(View.VISIBLE);
+            clockIn.setEnabled(true);
+            clockOut.setEnabled(false);
 
             NotificationHelper.showNotification(this, 1001, "Duty Clocked Out", "Your duty has been clocked out successfully.");
         });
@@ -233,6 +235,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
         mMap = googleMap;
+        mMap.setBuildingsEnabled(true);
 
         LatLng initialLocation =
                 new LatLng(28.52579, 77.15197);
@@ -247,7 +250,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         moveCameraToLocation();
 
-        mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+        mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
 
 
         mMap.setOnMapClickListener(latLng -> {
@@ -273,8 +276,40 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //            "Service updated at 09:45:30 AM"
 //            "Service received location update ()"
 
-            mMap.clear();
-            mMap.addMarker(new MarkerOptions().position(new LatLng(latitude, longitude)).title("Map Single Click Marker").snippet("Testing marker single click"));
+//            mMap.clear();
+            LatLng tapLocation = new LatLng(latitude, longitude);
+            if (mapMarker == null) {
+                mapMarker = mMap.addMarker(
+                        new MarkerOptions()
+                                .position(tapLocation)
+                                .draggable(true)
+                                .title("Map Single Click Marker")
+                                .snippet("Testing marker single click")
+                                .zIndex(100.9f)
+                                .flat(false)
+                );
+            } else {
+                mapMarker.setPosition(tapLocation);
+                mapMarker.setTitle("Map Single Click Marker");
+                mapMarker.setSnippet("Testing marker single click");
+            }
+            googleMap.setOnMarkerDragListener(new GoogleMap.OnMarkerDragListener() {
+                @Override
+                public void onMarkerDrag(@NonNull Marker marker) {
+                    String position = marker.getPosition().latitude + " , " + marker.getPosition().longitude;
+                    latLongLabel.setText(position);
+                }
+
+                @Override
+                public void onMarkerDragEnd(@NonNull Marker marker) {
+
+                }
+
+                @Override
+                public void onMarkerDragStart(@NonNull Marker marker) {
+
+                }
+            });
         });
 
         mMap.setOnMapLongClickListener(latLng -> {
@@ -295,8 +330,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             15
                     )
             );
-            mMap.clear();
-            mMap.addMarker(new MarkerOptions().position(new LatLng(latitude, longitude)).title("Map Long Click Marker").snippet("Testing marker long click"));
+//            mMap.clear();
+            LatLng tapLocation = new LatLng(latitude, longitude);
+            if (mapMarker == null) {
+                mapMarker = mMap.addMarker(
+                        new MarkerOptions()
+                                .position(tapLocation)
+                                .title("Map Long Click Marker")
+                                .snippet("Testing marker long click")
+                );
+            } else {
+                mapMarker.setPosition(tapLocation);
+                mapMarker.setTitle("Map Long Click Marker");
+                mapMarker.setSnippet("Testing marker long click");
+            }
+//            mMap.addMarker(new MarkerOptions().position(new LatLng(latitude, longitude)).title("Map Long Click Marker").snippet("Testing marker long click"));
         });
     }
 }
