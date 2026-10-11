@@ -1,6 +1,7 @@
 package com.example.employeemanagement.Activities;
 
 import android.annotation.SuppressLint;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -15,6 +16,7 @@ import android.widget.TextView;
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -22,6 +24,7 @@ import android.util.Log;
 
 import com.example.employeemanagement.NotificationHelper;
 import com.example.employeemanagement.R;
+import com.example.employeemanagement.Services.LocationForegroundService;
 import com.example.employeemanagement.receivers.ChargingReceiver;
 import com.example.employeemanagement.receivers.GPSReceiver;
 import com.google.android.gms.maps.CameraUpdate;
@@ -57,6 +60,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private GPSReceiver gpsReceiver;
     private GoogleMap mMap;
     private Marker mapMarker;
+
+    private Marker currentLocationMarker;
+    private LatLng latestLocation;
+    private TextView tvOnClickLatLongLabel;
+    private boolean locationReceiverRegistered = false;
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -181,6 +189,41 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
+    private final BroadcastReceiver locationReceiver =
+            new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+
+                    if (!LocationForegroundService.ACTION_LOCATION_UPDATE
+                            .equals(intent.getAction())) {
+                        return;
+                    }
+
+                    double latitude = intent.getDoubleExtra(
+                            LocationForegroundService.EXTRA_LATITUDE, 0.0
+                    );
+
+                    double longitude = intent.getDoubleExtra(
+                            LocationForegroundService.EXTRA_LONGITUDE, 0.0
+                    );
+
+                    latestLocation = new LatLng(latitude, longitude);
+
+                    updateMapMarker(latestLocation);
+
+                    if (latLongLabel != null) {
+                        latLongLabel.setText(
+                                String.format(
+                                        java.util.Locale.US,
+                                        "Latitude: %.6f\nLongitude: %.6f",
+                                        latitude,
+                                        longitude
+                                )
+                        );
+                    }
+                }
+            };
+
     private void setUpMap() {
         SupportMapFragment mapFragment = (SupportMapFragment)
                 getSupportFragmentManager().findFragmentById(R.id.map);
@@ -189,24 +232,80 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+
+
+    private void updateMapMarker(LatLng location) {
+
+        if (mMap == null || location == null) {
+            return;
+        }
+
+        if (currentLocationMarker == null) {
+
+            currentLocationMarker = mMap.addMarker(
+                    new MarkerOptions()
+                            .position(location)
+                            .title("Current Location")
+            );
+
+            mMap.animateCamera(
+                    CameraUpdateFactory.newLatLngZoom(location, 16f)
+            );
+
+        } else {
+
+            currentLocationMarker.setPosition(location);
+
+            mMap.animateCamera(
+                    CameraUpdateFactory.newLatLng(location)
+            );
+        }
+    }
+
+
     @Override
     protected void onStart() {
         super.onStart();
 
-        IntentFilter filter = new IntentFilter();
+        // Existing charging receiver
+        IntentFilter chargingFilter = new IntentFilter();
+        chargingFilter.addAction(Intent.ACTION_POWER_CONNECTED);
+        chargingFilter.addAction(Intent.ACTION_POWER_DISCONNECTED);
 
-        filter.addAction(Intent.ACTION_POWER_CONNECTED);
-        filter.addAction(Intent.ACTION_POWER_DISCONNECTED);
+        registerReceiver(chargingReceiver, chargingFilter);
 
-        registerReceiver(chargingReceiver,filter);
+        // New location receiver
+        if (!locationReceiverRegistered) {
+            IntentFilter locationFilter = new IntentFilter(
+                    LocationForegroundService.ACTION_LOCATION_UPDATE
+            );
+
+            ContextCompat.registerReceiver(
+                    this,
+                    locationReceiver,
+                    locationFilter,
+                    ContextCompat.RECEIVER_NOT_EXPORTED
+            );
+
+            locationReceiverRegistered = true;
+        }
     }
 
     @Override
     protected void onStop() {
-        super.onStop();
 
+        // Unregister existing charging receiver
         unregisterReceiver(chargingReceiver);
+
+        // Unregister location receiver
+        if (locationReceiverRegistered) {
+            unregisterReceiver(locationReceiver);
+            locationReceiverRegistered = false;
+        }
+
+        super.onStop();
     }
+
 
     @Override
     protected void onDestroy() {
@@ -237,6 +336,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMap = googleMap;
         mMap.setBuildingsEnabled(true);
 
+
         LatLng initialLocation =
                 new LatLng(28.52579, 77.15197);
 
@@ -251,6 +351,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         moveCameraToLocation();
 
         mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+        if (latestLocation != null) {
+            updateMapMarker(latestLocation);
+        }
 
 
         mMap.setOnMapClickListener(latLng -> {

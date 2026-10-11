@@ -1,7 +1,10 @@
 package com.example.employeemanagement.Activities;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
@@ -57,6 +60,49 @@ public class LocationServiceActivity extends AppCompatActivity {
     private int locationUpdateCount = 0;
     private float totalSpeed = 0f;
     private long selectedInterval = 5000;
+
+    private final BroadcastReceiver locationReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+            if (!LocationForegroundService.ACTION_LOCATION_UPDATE
+                    .equals(intent.getAction())) {
+                return;
+            }
+
+            double latitude = intent.getDoubleExtra(
+                    LocationForegroundService.EXTRA_LATITUDE, 0.0
+            );
+
+            double longitude = intent.getDoubleExtra(
+                    LocationForegroundService.EXTRA_LONGITUDE, 0.0
+            );
+
+            float accuracy = intent.getFloatExtra(
+                    LocationForegroundService.EXTRA_ACCURACY, 0f
+            );
+
+            float speed = intent.getFloatExtra("speed", 0f);
+            float bearing = intent.getFloatExtra("bearing", 0f);
+
+            Location location = new Location("service");
+
+            location.setLatitude(latitude);
+            location.setLongitude(longitude);
+            location.setAccuracy(accuracy);
+            location.setSpeed(speed);
+            location.setBearing(bearing);
+
+            if (speed > 0f) {
+                location.setSpeed(speed);
+            }
+
+            Log.d("LocationActivity",
+                    "Broadcast received: " + latitude + ", " + longitude);
+
+            updateLocationUI(location);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -167,6 +213,28 @@ public class LocationServiceActivity extends AppCompatActivity {
             stopTracking();
             updateIntervalSpinner.setVisibility(View.VISIBLE);
         });
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        IntentFilter filter = new IntentFilter(
+                LocationForegroundService.ACTION_LOCATION_UPDATE
+        );
+
+        ContextCompat.registerReceiver(
+                this,
+                locationReceiver,
+                filter,
+                ContextCompat.RECEIVER_NOT_EXPORTED
+        );
+    }
+
+    @Override
+    protected void onStop() {
+        unregisterReceiver(locationReceiver);
+        super.onStop();
     }
 
 
@@ -280,20 +348,10 @@ public class LocationServiceActivity extends AppCompatActivity {
     }
 
 
+
     private void startTracking() {
 
-        previousLocation = null;
-
-        totalDistance = 0f;
-
-        locationUpdateCount = 0;
-
-        totalSpeed = 0f;
-
-        distanceText.setText("Distance: 0 m");
-        updatesText.setText("Updates: 0");
-        averageSpeedText.setText("Average Speed: 0 km/h");
-
+        // Check location permission first
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -313,24 +371,21 @@ public class LocationServiceActivity extends AppCompatActivity {
             return;
         }
 
-        fusedLocationClient.requestLocationUpdates(
-                locationRequest,
-                locationCallback,
-                Looper.getMainLooper()
+        // Reset tracking calculations for this session
+        previousLocation = null;
+        totalDistance = 0f;
+        locationUpdateCount = 0;
+        totalSpeed = 0f;
+
+        distanceText.setText("Distance: 0 m");
+        updatesText.setText("Updates: 0");
+        averageSpeedText.setText("Average Speed: 0 km/h");
+
+        // Start the foreground service
+        Intent serviceIntent = new Intent(
+                this,
+                LocationForegroundService.class
         );
-
-        isTracking = true;
-        int light_blue = ContextCompat.getColor(this, R.color.jeebly_light_blue);
-
-        int red = ContextCompat.getColor(this, R.color.jeebly_red);
-
-        startTrackingButton.setEnabled(false);
-        startTrackingButton.setBackgroundColor(light_blue);
-        stopTrackingButton.setEnabled(true);
-        stopTrackingButton.setBackgroundColor(red);
-
-        Intent serviceIntent =
-                new Intent(this, LocationForegroundService.class);
 
         serviceIntent.setAction(
                 LocationForegroundService.ACTION_START
@@ -346,6 +401,23 @@ public class LocationServiceActivity extends AppCompatActivity {
                 serviceIntent
         );
 
+        // Update button appearance
+        int lightBlue = ContextCompat.getColor(
+                this, R.color.jeebly_light_blue
+        );
+
+        int red = ContextCompat.getColor(
+                this, R.color.jeebly_red
+        );
+
+        isTracking = true;
+
+        startTrackingButton.setEnabled(false);
+        startTrackingButton.setBackgroundColor(lightBlue);
+
+        stopTrackingButton.setEnabled(true);
+        stopTrackingButton.setBackgroundColor(red);
+
         Toast.makeText(
                 this,
                 "Tracking started",
@@ -353,26 +425,14 @@ public class LocationServiceActivity extends AppCompatActivity {
         ).show();
     }
 
+
+
     private void stopTracking() {
 
-        fusedLocationClient.removeLocationUpdates(
-                locationCallback
+        Intent serviceIntent = new Intent(
+                this,
+                LocationForegroundService.class
         );
-
-        isTracking = false;
-
-
-        int light_blue = ContextCompat.getColor(this, R.color.jeebly_light_blue);
-
-        int red = ContextCompat.getColor(this, R.color.jeebly_red);
-
-        startTrackingButton.setEnabled(true);
-        startTrackingButton.setBackgroundColor(red);
-        stopTrackingButton.setEnabled(false);
-        stopTrackingButton.setBackgroundColor(light_blue);
-
-        Intent serviceIntent =
-                new Intent(this, LocationForegroundService.class);
 
         serviceIntent.setAction(
                 LocationForegroundService.ACTION_STOP
@@ -380,10 +440,66 @@ public class LocationServiceActivity extends AppCompatActivity {
 
         startService(serviceIntent);
 
+        isTracking = false;
+
+        int lightBlue = ContextCompat.getColor(
+                this, R.color.jeebly_light_blue
+        );
+
+        int red = ContextCompat.getColor(
+                this, R.color.jeebly_red
+        );
+
+        startTrackingButton.setEnabled(true);
+        startTrackingButton.setBackgroundColor(red);
+
+        stopTrackingButton.setEnabled(false);
+        stopTrackingButton.setBackgroundColor(lightBlue);
+
         Toast.makeText(
                 this,
                 "Tracking stopped",
                 Toast.LENGTH_SHORT
         ).show();
     }
+
+
+    private void updateTrackingButtons() {
+
+        boolean tracking = LocationForegroundService.isTracking;
+
+        int lightBlue = ContextCompat.getColor(
+                this, R.color.jeebly_light_blue
+        );
+
+        int red = ContextCompat.getColor(
+                this, R.color.jeebly_red
+        );
+
+        isTracking = tracking;
+
+        startTrackingButton.setEnabled(!tracking);
+        startTrackingButton.setBackgroundColor(
+                tracking ? lightBlue : red
+        );
+
+        stopTrackingButton.setEnabled(tracking);
+        stopTrackingButton.setBackgroundColor(
+                tracking ? red : lightBlue
+        );
+
+        updateIntervalSpinner.setVisibility(
+                tracking ? View.GONE : View.VISIBLE
+        );
+    }
+
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        updateTrackingButtons();
+    }
+
+
+
 }

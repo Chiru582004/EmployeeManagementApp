@@ -25,6 +25,17 @@ public class LocationForegroundService extends Service {
     public static final String ACTION_STOP = "ACTION_STOP_LOCATION_SERVICE";
     public static final String EXTRA_INTERVAL = "EXTRA_INTERVAL";
 
+    public static final String ACTION_LOCATION_UPDATE =
+            "com.example.employeemanagement.ACTION_LOCATION_UPDATE";
+    public static final String ACTION_CHECK_STATUS =
+            "ACTION_CHECK_LOCATION_STATUS";
+
+    public static boolean isTracking = false;
+
+    public static final String EXTRA_LATITUDE = "latitude";
+    public static final String EXTRA_LONGITUDE = "longitude";
+    public static final String EXTRA_ACCURACY = "accuracy";
+
     private static final int NOTIFICATION_ID = 4001;
 
     private FusedLocationProviderClient fusedLocationClient;
@@ -55,6 +66,7 @@ public class LocationForegroundService extends Service {
                             updateCount++;
 
                             updateNotification(location);
+                            broadcastLocation(location);
                         }
                     }
                 };
@@ -67,13 +79,11 @@ public class LocationForegroundService extends Service {
             int startId
     ) {
 
-        if (intent != null &&
-                ACTION_STOP.equals(intent.getAction())) {
+        if (intent != null && ACTION_STOP.equals(intent.getAction())) {
+            isTracking = false;
 
             stopLocationUpdates();
-
             stopForeground(true);
-
             stopSelf();
 
             return START_NOT_STICKY;
@@ -106,30 +116,22 @@ public class LocationForegroundService extends Service {
 
     private void startLocationUpdates(long interval) {
 
-        if (
-                ActivityCompat.checkSelfPermission(
-                        this,
-                        Manifest.permission.ACCESS_FINE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED
-                        &&
-                        ActivityCompat.checkSelfPermission(
-                                this,
-                                Manifest.permission.ACCESS_COARSE_LOCATION
-                        ) != PackageManager.PERMISSION_GRANTED
-        ) {
-
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            isTracking = false;
             stopSelf();
-
             return;
         }
 
-        LocationRequest locationRequest =
-                new LocationRequest.Builder(
-                        Priority.PRIORITY_HIGH_ACCURACY,
-                        interval
-                )
-                        .setMinUpdateIntervalMillis(interval)
-                        .build();
+        // Add this line after the permission check
+        isTracking = true;
+
+        LocationRequest locationRequest = new LocationRequest.Builder(
+                Priority.PRIORITY_HIGH_ACCURACY, interval)
+                .setMinUpdateIntervalMillis(interval)
+                .build();
 
         fusedLocationClient.requestLocationUpdates(
                 locationRequest,
@@ -153,6 +155,21 @@ public class LocationForegroundService extends Service {
         );
     }
 
+    private void broadcastLocation(Location location) {
+        Intent intent = new Intent(ACTION_LOCATION_UPDATE);
+        intent.setPackage(getPackageName());
+
+        intent.putExtra(EXTRA_LATITUDE, location.getLatitude());
+        intent.putExtra(EXTRA_LONGITUDE, location.getLongitude());
+        intent.putExtra(EXTRA_ACCURACY, location.getAccuracy());
+        intent.putExtra("speed",
+                location.hasSpeed() ? location.getSpeed() : 0f);
+        intent.putExtra("bearing",
+                location.hasBearing() ? location.getBearing() : 0f);
+
+        sendBroadcast(intent);
+    }
+
     private void stopLocationUpdates() {
 
         if (fusedLocationClient != null &&
@@ -164,11 +181,11 @@ public class LocationForegroundService extends Service {
         }
     }
 
+
     @Override
     public void onDestroy() {
-
+        isTracking = false;
         stopLocationUpdates();
-
         super.onDestroy();
     }
 
