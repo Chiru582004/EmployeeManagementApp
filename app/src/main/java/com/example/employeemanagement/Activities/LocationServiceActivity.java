@@ -351,7 +351,6 @@ public class LocationServiceActivity extends AppCompatActivity {
 
     private void startTracking() {
 
-        // Check location permission first
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -371,7 +370,6 @@ public class LocationServiceActivity extends AppCompatActivity {
             return;
         }
 
-        // Reset tracking calculations for this session
         previousLocation = null;
         totalDistance = 0f;
         locationUpdateCount = 0;
@@ -401,7 +399,6 @@ public class LocationServiceActivity extends AppCompatActivity {
                 serviceIntent
         );
 
-        // Update button appearance
         int lightBlue = ContextCompat.getColor(
                 this, R.color.jeebly_light_blue
         );

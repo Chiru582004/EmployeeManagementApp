@@ -125,7 +125,7 @@ public class LocationForegroundService extends Service {
             return;
         }
 
-        // Add this line after the permission check
+
         isTracking = true;
 
         LocationRequest locationRequest = new LocationRequest.Builder(

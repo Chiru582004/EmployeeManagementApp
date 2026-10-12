@@ -26,10 +26,8 @@ public class NotificationHelper {
             String notificationBody
     ) {
 
-        // Create notification channel
         createNotificationChannel(context);
 
-        // Check notification permission
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
 
             if (ContextCompat.checkSelfPermission(
@@ -37,12 +35,10 @@ public class NotificationHelper {
                     Manifest.permission.POST_NOTIFICATIONS
             ) != PackageManager.PERMISSION_GRANTED) {
 
-                // Permission not granted
                 return;
             }
         }
 
-        // Build notification
         NotificationCompat.Builder builder =
                 new NotificationCompat.Builder(context, CHANNEL_ID)
                         .setSmallIcon(R.drawable.ic_notification)
@@ -51,7 +47,6 @@ public class NotificationHelper {
                         .setPriority(NotificationCompat.PRIORITY_HIGH)
                         .setAutoCancel(true);
 
-        // Show notification
         NotificationManagerCompat notificationManager =
                 NotificationManagerCompat.from(context);
 

@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".Activities.LocationServiceActivity"
-    android:background="@color/jeebly_light_blue"
+    android:background="@color/white"
     >
 
 
@@ -36,7 +36,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tv_location_label"
         app:cardCornerRadius="40dp"
-        android:backgroundTint="@color/jeebly_blue">
+        android:backgroundTint="@color/jeebly_light_blue">
 
 
         <LinearLayout

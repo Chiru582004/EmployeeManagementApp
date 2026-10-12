@@ -5,6 +5,8 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -32,7 +34,10 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.messaging.FirebaseMessaging;
@@ -63,7 +68,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private Marker currentLocationMarker;
     private LatLng latestLocation;
-    private TextView tvOnClickLatLongLabel;
+    private BitmapDescriptor carIcon;
+    private float currentBearing = 0f;
     private boolean locationReceiverRegistered = false;
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override
@@ -76,6 +82,26 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         EdgeToEdge.enable(this);
 
         setContentView(R.layout.activity_main);
+
+
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inScaled = false;
+
+        Bitmap originalBitmap = BitmapFactory.decodeResource(
+                getResources(),
+                R.drawable.car,
+                options
+        );
+
+        Bitmap smallCarBitmap = Bitmap.createScaledBitmap(
+                originalBitmap,
+                64,    // Width in pixels
+                64,    // Height in pixels
+                true
+        );
+
+        carIcon = BitmapDescriptorFactory.fromBitmap(smallCarBitmap);
+
 
         chargingReceiver = new ChargingReceiver();
 
@@ -207,9 +233,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             LocationForegroundService.EXTRA_LONGITUDE, 0.0
                     );
 
+                    float bearing = intent.getFloatExtra("bearing", 0f);
+                    currentBearing = bearing;
+
                     latestLocation = new LatLng(latitude, longitude);
 
-                    updateMapMarker(latestLocation);
+                    updateMapMarker(latestLocation, currentBearing);
 
                     if (latLongLabel != null) {
                         latLongLabel.setText(
@@ -228,13 +257,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         SupportMapFragment mapFragment = (SupportMapFragment)
                 getSupportFragmentManager().findFragmentById(R.id.map);
         if (mapFragment != null) {
-            mapFragment.getMapAsync(this); // triggers onMapReady
+            mapFragment.getMapAsync(this);
         }
     }
 
 
 
-    private void updateMapMarker(LatLng location) {
+
+    private void updateMapMarker(LatLng location, float bearing) {
 
         if (mMap == null || location == null) {
             return;
@@ -245,7 +275,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             currentLocationMarker = mMap.addMarker(
                     new MarkerOptions()
                             .position(location)
-                            .title("Current Location")
+                            .title("Current Vehicle Location")
+                            .icon(carIcon)
+                            .anchor(0.5f, 0.5f)
+                            .rotation(bearing)
+                            .flat(true)
             );
 
             mMap.animateCamera(
@@ -255,6 +289,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else {
 
             currentLocationMarker.setPosition(location);
+            currentLocationMarker.setRotation(bearing);
 
             mMap.animateCamera(
                     CameraUpdateFactory.newLatLng(location)
@@ -263,18 +298,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
 
+
     @Override
     protected void onStart() {
         super.onStart();
 
-        // Existing charging receiver
         IntentFilter chargingFilter = new IntentFilter();
         chargingFilter.addAction(Intent.ACTION_POWER_CONNECTED);
         chargingFilter.addAction(Intent.ACTION_POWER_DISCONNECTED);
 
         registerReceiver(chargingReceiver, chargingFilter);
 
-        // New location receiver
         if (!locationReceiverRegistered) {
             IntentFilter locationFilter = new IntentFilter(
                     LocationForegroundService.ACTION_LOCATION_UPDATE
@@ -294,10 +328,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onStop() {
 
-        // Unregister existing charging receiver
         unregisterReceiver(chargingReceiver);
 
-        // Unregister location receiver
+
         if (locationReceiverRegistered) {
             unregisterReceiver(locationReceiver);
             locationReceiverRegistered = false;
@@ -336,6 +369,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMap = googleMap;
         mMap.setBuildingsEnabled(true);
 
+//        mMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(this, R.raw.map_style));
 
         LatLng initialLocation =
                 new LatLng(28.52579, 77.15197);
@@ -352,7 +386,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
         if (latestLocation != null) {
-            updateMapMarker(latestLocation);
+            updateMapMarker(latestLocation, currentBearing);
         }
 
 
@@ -376,10 +410,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     )
             );
 
-//            "Service updated at 09:45:30 AM"
-//            "Service received location update ()"
-
-//            mMap.clear();
             LatLng tapLocation = new LatLng(latitude, longitude);
             if (mapMarker == null) {
                 mapMarker = mMap.addMarker(
@@ -419,6 +449,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             double latitude = latLng.latitude;
             double longitude = latLng.longitude;
 
+
             latLongLabel.setVisibility(View.VISIBLE);
             latLongLabel.setText( latitude + " , " + longitude);
 
@@ -433,7 +464,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             15
                     )
             );
-//            mMap.clear();
             LatLng tapLocation = new LatLng(latitude, longitude);
             if (mapMarker == null) {
                 mapMarker = mMap.addMarker(
@@ -447,7 +477,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 mapMarker.setTitle("Map Long Click Marker");
                 mapMarker.setSnippet("Testing marker long click");
             }
-//            mMap.addMarker(new MarkerOptions().position(new LatLng(latitude, longitude)).title("Map Long Click Marker").snippet("Testing marker long click"));
         });
     }
 }
