@@ -291,9 +291,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             currentLocationMarker.setPosition(location);
             currentLocationMarker.setRotation(bearing);
 
-            mMap.animateCamera(
-                    CameraUpdateFactory.newLatLng(location)
-            );
+//            mMap.animateCamera(
+//                    CameraUpdateFactory.newLatLng(location)
+//            );
         }
     }
 

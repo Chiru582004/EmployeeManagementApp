@@ -6,9 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.location.Location;
 import android.os.Bundle;
-import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
@@ -17,34 +15,21 @@ import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.activity.EdgeToEdge;
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-
 import com.example.employeemanagement.R;
 import com.example.employeemanagement.Services.LocationForegroundService;
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationCallback;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationResult;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.location.Priority;
 
 public class LocationServiceActivity extends AppCompatActivity {
 
 
 
-    private FusedLocationProviderClient fusedLocationClient;
-    private LocationRequest locationRequest;
-    private LocationCallback locationCallback;
     private Spinner updateIntervalSpinner;
-    private boolean isTracking = false;
     private TextView latitudeText;
     private TextView longitudeText;
     private TextView accuracyText;
@@ -55,11 +40,8 @@ public class LocationServiceActivity extends AppCompatActivity {
     private TextView averageSpeedText;
     private Button startTrackingButton;
     private Button stopTrackingButton;
-    private Location previousLocation;
-    private float totalDistance = 0f;
-    private int locationUpdateCount = 0;
-    private float totalSpeed = 0f;
     private long selectedInterval = 5000;
+
 
     private final BroadcastReceiver locationReceiver = new BroadcastReceiver() {
         @Override
@@ -85,24 +67,37 @@ public class LocationServiceActivity extends AppCompatActivity {
             float speed = intent.getFloatExtra("speed", 0f);
             float bearing = intent.getFloatExtra("bearing", 0f);
 
-            Location location = new Location("service");
+            int count = intent.getIntExtra("updateCount", 0);
+            float distance = intent.getFloatExtra("totalDistance", 0f);
+            float average = intent.getFloatExtra("averageSpeed", 0f);
 
-            location.setLatitude(latitude);
-            location.setLongitude(longitude);
-            location.setAccuracy(accuracy);
-            location.setSpeed(speed);
-            location.setBearing(bearing);
+            latitudeText.setText("Latitude: " + latitude);
+            longitudeText.setText("Longitude: " + longitude);
+            accuracyText.setText("Accuracy: " + accuracy + " m");
+            speedText.setText("Speed: " + speed + " km/h");
+            bearingText.setText("Bearing: " + bearing + "°");
 
-            if (speed > 0f) {
-                location.setSpeed(speed);
-            }
+            updatesText.setText("Updates: " + count);
+
+            distanceText.setText(String.format(
+                    java.util.Locale.US,
+                    "Distance: %.2f m",
+                    distance
+            ));
+
+            averageSpeedText.setText(String.format(
+                    java.util.Locale.US,
+                    "Average Speed: %.2f km/h",
+                    average
+            ));
 
             Log.d("LocationActivity",
-                    "Broadcast received: " + latitude + ", " + longitude);
-
-            updateLocationUI(location);
+                    "Location received. Updates: " + count
+                            + ", Distance: " + distance
+                            + ", Average Speed: " + average);
         }
     };
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -132,7 +127,6 @@ public class LocationServiceActivity extends AppCompatActivity {
 
         stopTrackingButton = findViewById(R.id.btn_stopTracking);
 
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         String[] intervals = {
                 "1 Second",
@@ -182,7 +176,6 @@ public class LocationServiceActivity extends AppCompatActivity {
                                 selectedInterval = 30000;
                                 break;
                         }
-                        createLocationRequest();
                     }
 
                     @Override
@@ -198,8 +191,6 @@ public class LocationServiceActivity extends AppCompatActivity {
             return insets;
         });
 
-        createLocationRequest();
-        createLocationCallback();
 
         startTrackingButton.setOnClickListener(v -> {
 
@@ -239,113 +230,6 @@ public class LocationServiceActivity extends AppCompatActivity {
 
 
 
-    private void createLocationRequest() {
-
-        locationRequest =
-                new LocationRequest.Builder(
-                        Priority.PRIORITY_HIGH_ACCURACY,
-                        selectedInterval
-                )
-                        .setMinUpdateIntervalMillis(
-                                selectedInterval
-                        )
-                        .build();
-    }
-
-    private void createLocationCallback() {
-
-        locationCallback = new LocationCallback() {
-
-            @Override
-            public void onLocationResult(
-                    @NonNull LocationResult locationResult) {
-
-                for (Location location : locationResult.getLocations()) {
-
-                    updateLocationUI(location);
-
-                }
-            }
-        };
-    }
-
-    private void updateLocationUI(Location location) {
-
-        double latitude = location.getLatitude();
-        double longitude = location.getLongitude();
-
-        float accuracy = location.getAccuracy();
-
-        float speed = 0f;
-
-        if (location.hasSpeed()) {
-            speed = location.getSpeed();
-        }
-
-        float bearing = 0f;
-
-        if (location.hasBearing()) {
-            bearing = location.getBearing();
-        }
-
-        float speedKmh = speed * 3.6f;
-
-
-        locationUpdateCount++;
-
-        if (previousLocation != null) {
-
-            float distance = previousLocation.distanceTo(location);
-
-            totalDistance += distance;
-        }
-
-        previousLocation = new Location(location);
-
-        totalSpeed += speedKmh;
-
-        float averageSpeed = totalSpeed / locationUpdateCount;
-
-        latitudeText.setText("Latitude: " + latitude);
-
-        longitudeText.setText("Longitude: " + longitude);
-
-        accuracyText.setText(
-                "Accuracy: " + accuracy + " m"
-        );
-
-        speedText.setText(
-                "Speed: " + speedKmh + " km/h"
-        );
-
-        bearingText.setText(
-                "Bearing: " + bearing + "°"
-        );
-
-        distanceText.setText(
-                "Distance: " + totalDistance + " m"
-        );
-
-        updatesText.setText(
-                "Updates: " + locationUpdateCount
-        );
-
-        averageSpeedText.setText(
-                "Average Speed: " + averageSpeed + " km/h"
-        );
-
-        Log.d(
-                "LocationTracking",
-                "Latitude: " + latitude +
-                        ", Longitude: " + longitude +
-                        ", Accuracy: " + accuracy +
-                        ", Speed: " + speedKmh +
-                        " km/h, Bearing: " + bearing +
-                        ", Distance: " + totalDistance +
-                        ", Updates: " + locationUpdateCount +
-                        ", Average Speed: " + averageSpeed
-        );
-    }
 
 
 
@@ -370,14 +254,7 @@ public class LocationServiceActivity extends AppCompatActivity {
             return;
         }
 
-        previousLocation = null;
-        totalDistance = 0f;
-        locationUpdateCount = 0;
-        totalSpeed = 0f;
 
-        distanceText.setText("Distance: 0 m");
-        updatesText.setText("Updates: 0");
-        averageSpeedText.setText("Average Speed: 0 km/h");
 
         // Start the foreground service
         Intent serviceIntent = new Intent(
@@ -407,7 +284,6 @@ public class LocationServiceActivity extends AppCompatActivity {
                 this, R.color.jeebly_red
         );
 
-        isTracking = true;
 
         startTrackingButton.setEnabled(false);
         startTrackingButton.setBackgroundColor(lightBlue);
@@ -437,7 +313,6 @@ public class LocationServiceActivity extends AppCompatActivity {
 
         startService(serviceIntent);
 
-        isTracking = false;
 
         int lightBlue = ContextCompat.getColor(
                 this, R.color.jeebly_light_blue
@@ -473,7 +348,6 @@ public class LocationServiceActivity extends AppCompatActivity {
                 this, R.color.jeebly_red
         );
 
-        isTracking = tracking;
 
         startTrackingButton.setEnabled(!tracking);
         startTrackingButton.setBackgroundColor(

@@ -7,6 +7,7 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.IBinder;
 import android.os.Looper;
+import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
@@ -24,25 +25,27 @@ public class LocationForegroundService extends Service {
     public static final String ACTION_START = "ACTION_START_LOCATION_SERVICE";
     public static final String ACTION_STOP = "ACTION_STOP_LOCATION_SERVICE";
     public static final String EXTRA_INTERVAL = "EXTRA_INTERVAL";
-
     public static final String ACTION_LOCATION_UPDATE =
             "com.example.employeemanagement.ACTION_LOCATION_UPDATE";
     public static final String ACTION_CHECK_STATUS =
             "ACTION_CHECK_LOCATION_STATUS";
-
     public static boolean isTracking = false;
-
     public static final String EXTRA_LATITUDE = "latitude";
     public static final String EXTRA_LONGITUDE = "longitude";
     public static final String EXTRA_ACCURACY = "accuracy";
-
     private static final int NOTIFICATION_ID = 4001;
-
     private FusedLocationProviderClient fusedLocationClient;
-
     private LocationCallback locationCallback;
-
     private int updateCount = 0;
+    private Location previousLocation;
+    private float totalDistance = 0f;
+    private float totalSpeed = 0f;
+    private float averageSpeed = 0f;
+    private double latitude = 0.0;
+    private double longitude = 0.0;
+    private float accuracy = 0f;
+    private float speedKmh = 0f;
+    private float bearing = 0f;
 
     @Override
     public void onCreate() {
@@ -52,24 +55,53 @@ public class LocationForegroundService extends Service {
         fusedLocationClient =
                 LocationServices.getFusedLocationProviderClient(this);
 
-        locationCallback =
-                new LocationCallback() {
 
-                    @Override
-                    public void onLocationResult(
-                            LocationResult locationResult
-                    ) {
+        locationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                if (locationResult == null) {
+                    return;
+                }
 
-                        for (Location location :
-                                locationResult.getLocations()) {
+                for (Location location : locationResult.getLocations()) {
 
-                            updateCount++;
+                    latitude = location.getLatitude();
+                    longitude = location.getLongitude();
+                    accuracy = location.getAccuracy();
 
-                            updateNotification(location);
-                            broadcastLocation(location);
-                        }
+                    speedKmh = location.hasSpeed()
+                            ? location.getSpeed() * 3.6f
+                            : 0f;
+
+                    bearing = location.hasBearing()
+                            ? location.getBearing()
+                            : 0f;
+
+                    // Calculate distance between consecutive locations
+                    if (previousLocation != null) {
+                        totalDistance += previousLocation.distanceTo(location);
                     }
-                };
+
+                    previousLocation = new Location(location);
+
+                    // Update statistics in the service
+                    updateCount++;
+                    totalSpeed += speedKmh;
+                    averageSpeed = totalSpeed / updateCount;
+
+                    Log.d("LocationService",
+                            "Lat: " + latitude
+                                    + ", Lng: " + longitude
+                                    + ", Updates: " + updateCount
+                                    + ", Distance: " + totalDistance
+                                    + ", Average speed: " + averageSpeed);
+
+                    updateNotification(location);
+                    broadcastLocation(location);
+                }
+            }
+        };
+
     }
 
     @Override
@@ -108,6 +140,12 @@ public class LocationForegroundService extends Service {
                         "Location Update Service started"
                 )
         );
+
+        boolean alreadyTracking = isTracking;
+
+        if (!alreadyTracking) {
+            resetTrackingStats();
+        }
 
         startLocationUpdates(interval);
 
@@ -155,20 +193,27 @@ public class LocationForegroundService extends Service {
         );
     }
 
+
     private void broadcastLocation(Location location) {
+
         Intent intent = new Intent(ACTION_LOCATION_UPDATE);
         intent.setPackage(getPackageName());
 
-        intent.putExtra(EXTRA_LATITUDE, location.getLatitude());
-        intent.putExtra(EXTRA_LONGITUDE, location.getLongitude());
-        intent.putExtra(EXTRA_ACCURACY, location.getAccuracy());
-        intent.putExtra("speed",
-                location.hasSpeed() ? location.getSpeed() : 0f);
-        intent.putExtra("bearing",
-                location.hasBearing() ? location.getBearing() : 0f);
+        // Current location details
+        intent.putExtra(EXTRA_LATITUDE, latitude);
+        intent.putExtra(EXTRA_LONGITUDE, longitude);
+        intent.putExtra(EXTRA_ACCURACY, accuracy);
+        intent.putExtra("speed", speedKmh);
+        intent.putExtra("bearing", bearing);
+
+        // Tracking statistics
+        intent.putExtra("updateCount", updateCount);
+        intent.putExtra("totalDistance", totalDistance);
+        intent.putExtra("averageSpeed", averageSpeed);
 
         sendBroadcast(intent);
     }
+
 
     private void stopLocationUpdates() {
 
@@ -180,6 +225,22 @@ public class LocationForegroundService extends Service {
             );
         }
     }
+
+
+    private void resetTrackingStats() {
+        previousLocation = null;
+        updateCount = 0;
+        totalDistance = 0f;
+        totalSpeed = 0f;
+        averageSpeed = 0f;
+
+        latitude = 0.0;
+        longitude = 0.0;
+        accuracy = 0f;
+        speedKmh = 0f;
+        bearing = 0f;
+    }
+
 
 
     @Override
