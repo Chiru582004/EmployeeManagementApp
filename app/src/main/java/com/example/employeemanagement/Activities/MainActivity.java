@@ -61,6 +61,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private ImageButton profileImageButton;
     private ImageButton locationImageButton;
 
+    private ImageButton showMarker;
+    private ImageButton hideMarker;
+
     private TextView latLongLabel;
     private GPSReceiver gpsReceiver;
     private GoogleMap mMap;
@@ -140,7 +143,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                     Log.d("FCM_TOKEN", token);
 
-                    fcmTokenLabel.setText("FCM Token Generated");
+                    fcmTokenLabel.setText("FCM Token");
+
                 });
 
 
@@ -161,6 +165,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             startActivity(intent);
         });
 
+        showMarker = findViewById(R.id.ibtn_show);
+        hideMarker = findViewById(R.id.ibtn_hide);
+
+        hideMarker.setOnClickListener(v -> {
+            mapMarker.setVisible(false);
+            currentLocationMarker.setVisible(false);
+            showMarker.setVisibility(View.VISIBLE);
+            hideMarker.setVisibility(View.GONE);
+        });
+        showMarker.setOnClickListener(v -> {
+            mapMarker.setVisible(true);
+            currentLocationMarker.setVisible(true);
+            showMarker.setVisibility(View.GONE);
+            hideMarker.setVisibility(View.VISIBLE);
+        });
 
 
         permissionManagerButton = findViewById(R.id.btn_permission_manager);
@@ -369,7 +388,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMap = googleMap;
         mMap.setBuildingsEnabled(true);
 
-//        mMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(this, R.raw.map_style));
+        mMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(this, R.raw.map_style));
 
         LatLng initialLocation =
                 new LatLng(28.52579, 77.15197);
